@@ -52,15 +52,15 @@ This repository is organized as:
 - use the train_base.py to test Basis and AdaBN (network-based DTL and instanced-based DTL)
 
 - for example, use the following commands to test Basis for CWRU with the transfer_task 0-->1
-- `python train_base.py --data_name CWRU --data_dir D:/Data/CWRU --transfer_task [0],[1] --adabn ''`
+- `python train_base.py --data_name CWRU --data_dir D:/Data/CWRU --transfer_task [0],[1] --adabn ""`
 - for example, use the following commands to test AdaBN for CWRU with the transfer_task 0-->1
 - `python train_base.py --data_name CWRU --data_dir D:/Data/CWRU --transfer_task [0],[1]`
 
 - use the train_advanced.py to test (mapping-based DTL and adversarial-based DTL)
 - for example, use the following commands to test DANN for CWRU with the transfer_task 0-->1
-- `python train_advanced.py --data_name CWRU --data_dir D:/Data/CWRU --transfer_task [0],[1]  --last_batch '' --distance_metric '' --domain_adversarial True --adversarial_loss DA`
+- `python train_advanced.py --data_name CWRU --data_dir D:/Data/CWRU --transfer_task [0],[1]  --last_batch "" --distance_metric "" --domain_adversarial True --adversarial_loss DA`
 - for example, use the following commands to test MK-MMD for CWRU with the transfer_task 0-->1
-- `python train_advanced.py --data_name CWRU --data_dir D:/Data/CWRU --transfer_task [0],[1] --last_batch True --distance_metric True --distance_loss MK-MMD --domain_adversarial '' `
+- `python train_advanced.py --data_name CWRU --data_dir D:/Data/CWRU --transfer_task [0],[1] --last_batch True --distance_metric True --distance_loss MK-MMD --domain_adversarial "" `
 
 
 
