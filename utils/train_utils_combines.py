@@ -278,10 +278,10 @@ class train_utils(object):
                             classifier_loss = self.criterion(logits, labels)
                             # Calculate the distance metric
                             if self.distance_loss is not None:
-                                if args.distance_loss == 'MMD':
+                                if args.distance_loss == 'MK-MMD':
                                     distance_loss = self.distance_loss(features.narrow(0, 0, labels.size(0)),
                                                                        features.narrow(0, labels.size(0), inputs.size(0)-labels.size(0)))
-                                elif args.distance_loss == 'MKMMD':
+                                elif args.distance_loss == 'JMMD':
                                     softmax_out = self.softmax_layer(outputs)
                                     distance_loss = self.distance_loss([features.narrow(0, 0, labels.size(0)),
                                                                         softmax_out.narrow(0, 0, labels.size(0))],
