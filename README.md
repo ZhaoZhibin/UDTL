@@ -66,6 +66,7 @@ This repository is organized as:
 
 ## Citation
 Codes:
+```
 @misc{Zhao2019,
 author = {Zhibin Zhao and Qiyang Zhang and Xiaolei Yu and Chuang Sun and Shibin Wang and Ruqiang Yan and Xuefeng Chen},
 title = {Unsupervised Deep Transfer Learning for Intelligent Fault Diagnosis},
@@ -74,13 +75,15 @@ publisher = {GitHub},
 journal = {GitHub repository},
 howpublished = {\url{https://github.com/ZhaoZhibin/UDTL}},
 }
+```
 Paper:
+```
 @article{zhao2019unsupervised,
   title={Unsupervised Deep Transfer Learning for Intelligent Fault Diagnosis: An Open Source and Comparative Study},
   author={Zhibin Zhao and Qiyang Zhang and Xiaolei Yu and Chuang Sun and Shibin Wang and Ruqiang Yan and Xuefeng Chen},
   journal={arXiv preprint arXiv:1912.12528},
   year={2019}
 }
-
+```
 ## Contact
 - zhibinzhao1993@gmail.com
