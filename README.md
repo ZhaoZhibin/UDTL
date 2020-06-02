@@ -3,6 +3,9 @@
 
 Code release for **[Unsupervised Deep Transfer Learning for Intelligent Fault Diagnosis: An Open Source and Comparative Study](https://github.com/ZhaoZhibin/DL-based-Intelligent-Diagnosis-Benchmark)** by [Zhibin Zhao](https://zhaozhibin.github.io/), Qiyang Zhang, and Xiaolei Yu.
 
+## Correction
+* 2020.06.02, we modified the errors in util/train_utils_combines. (class_num --> num_classes).
+
 ## Guide
 This project just provides the baseline (lower bound) accuracies and a unified intelligent fault diagnosis library based on unsupervised deep transfer learning (UDTL) which retains an extended interface for everyone to load their own datasets and models by themselves to carry out new studies.
 Meanwhile, all the experiments are executed under Window 10 and Pytorch 1.3 through running on a computer with an Intel Core i7-9700K, GeForce RTX 2080Ti, and 16G RAM.
