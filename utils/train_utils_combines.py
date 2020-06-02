@@ -67,7 +67,7 @@ class train_utils(object):
                                                   nn.ReLU(inplace=True), nn.Dropout())
             self.classifier_layer = nn.Linear(args.bottleneck_num, Dataset.num_classes)
         else:
-            self.classifier_layer = nn.Linear(self.model.output_num(), Dataset.class_num)
+            self.classifier_layer = nn.Linear(self.model.output_num(), Dataset.num_classes)
 
         self.model_all = nn.Sequential(self.model, self.bottleneck_layer, self.classifier_layer)
 
