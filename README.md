@@ -2,6 +2,7 @@
 ## UDTL-based-Intelligent-Diagnosis-Benchmark
 
 Code release for **[Unsupervised Deep Transfer Learning for Intelligent Fault Diagnosis: An Open Source and Comparative Study](https://github.com/ZhaoZhibin/DL-based-Intelligent-Diagnosis-Benchmark)** by [Zhibin Zhao](https://zhaozhibin.github.io/), Qiyang Zhang, and Xiaolei Yu.
+The methods about multi-domains can be found in (https://github.com/zhanghuanwang1/UDTL_multi_domain)
 
 ## Correction
 * 2020.06.02, we modified the errors in util/train_utils_combines. (class_num --> num_classes).
