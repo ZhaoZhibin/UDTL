@@ -12,12 +12,9 @@ from torch import optim
 
 import models
 import datasets
-from loss.DAN import DAN
-from loss.JAN import JAN
-from loss.CORAL import CORAL
-from utils.entropy_CDA import Entropy
-from utils.entropy_CDA import calc_coeff
-from utils.entropy_CDA import grl_hook
+
+# Adapted from https://github.com/thuml/PADA
+
 class train_utils(object):
     def __init__(self, args, save_dir):
         self.args = args
@@ -50,7 +47,12 @@ class train_utils(object):
         if isinstance(args.transfer_task[0], str):
            #print(args.transfer_task)
            args.transfer_task = eval("".join(args.transfer_task))
-        self.datasets['source_train'], self.datasets['source_val'], self.datasets['target_train'], self.datasets['target_val'] = Dataset(args.data_dir, args.transfer_task, args.normlizetype).data_split(transfer_learning=True)
+        if args.inconsistent=="PADA":
+            self.datasets['source_train'], self.datasets['source_val'], self.datasets['target_train'], self.datasets['target_val'], self.num_classes\
+                = Dataset(args.data_dir, args.transfer_task, args.inconsistent, args.normlizetype).data_split(transfer_learning=True)
+        else:
+            self.datasets['source_train'], self.datasets['source_val'], self.datasets['target_train'], self.datasets['target_val'] \
+                = Dataset(args.data_dir, args.transfer_task, args.normlizetype).data_split(transfer_learning=True)
 
 
         self.dataloaders = {x: torch.utils.data.DataLoader(self.datasets[x], batch_size=args.batch_size,
@@ -62,55 +64,44 @@ class train_utils(object):
 
         # Define the model
         self.model = getattr(models, args.model_name)(args.pretrained)
+        if args.inconsistent == "PADA":
+            if args.bottleneck:
+                self.bottleneck_layer = nn.Sequential(nn.Linear(self.model.output_num(), args.bottleneck_num),
+                                                      nn.ReLU(inplace=True), nn.Dropout())
+                self.classifier_layer = nn.Linear(args.bottleneck_num, self.num_classes)
+            else:
+                self.classifier_layer = nn.Linear(self.model.output_num(), self.num_classes)
+
         if args.bottleneck:
-            self.bottleneck_layer = nn.Sequential(nn.Linear(self.model.output_num(), args.bottleneck_num),
-                                                  nn.ReLU(inplace=True), nn.Dropout())
-            self.classifier_layer = nn.Linear(args.bottleneck_num, Dataset.num_classes)
+            self.model_all = nn.Sequential(self.model, self.bottleneck_layer, self.classifier_layer)
         else:
-            self.classifier_layer = nn.Linear(self.model.output_num(), Dataset.num_classes)
+            self.model_all = nn.Sequential(self.model, self.classifier_layer)
 
-        self.model_all = nn.Sequential(self.model, self.bottleneck_layer, self.classifier_layer)
-
-        if args.domain_adversarial:
-            self.max_iter = len(self.dataloaders['source_train'])*(args.max_epoch-args.middle_epoch)
-            if args.adversarial_loss == "CDA" or args.adversarial_loss == "CDA+E":
-                if args.bottleneck:
-                    self.AdversarialNet = getattr(models, 'AdversarialNet')(in_feature=args.bottleneck_num*Dataset.num_classes,
-                                                                            hidden_size=args.hidden_size, max_iter=self.max_iter,
-                                                                            trade_off_adversarial=args.trade_off_adversarial,
-                                                                            lam_adversarial=args.lam_adversarial
-                                                                            )
-                else:
-                    self.AdversarialNet = getattr(models, 'AdversarialNet')(in_feature=self.model.output_num()*Dataset.num_classes,
+        if args.inconsistent == "PADA":
+            self.max_iter = len(self.dataloaders['source_train']) * (args.max_epoch - args.middle_epoch)
+            if args.bottleneck:
+                self.AdversarialNet = getattr(models, 'AdversarialNet')(in_feature=args.bottleneck_num,
                                                                             hidden_size=args.hidden_size, max_iter=self.max_iter,
                                                                             trade_off_adversarial=args.trade_off_adversarial,
                                                                             lam_adversarial=args.lam_adversarial
                                                                             )
             else:
-                if args.bottleneck_num:
-                    self.AdversarialNet = getattr(models, 'AdversarialNet')(in_feature=args.bottleneck_num,
+                self.AdversarialNet = getattr(models, 'AdversarialNet')(in_feature=self.model.output_num(),
                                                                             hidden_size=args.hidden_size, max_iter=self.max_iter,
                                                                             trade_off_adversarial=args.trade_off_adversarial,
                                                                             lam_adversarial=args.lam_adversarial
                                                                             )
-                else:
-                    self.AdversarialNet = getattr(models, 'AdversarialNet')(in_feature=self.model.output_num(),
-                                                                            hidden_size=args.hidden_size, max_iter=self.max_iter,
-                                                                            trade_off_adversarial=args.trade_off_adversarial,
-                                                                            lam_adversarial=args.lam_adversarial
-                                                                            )
-
 
         if self.device_count > 1:
             self.model = torch.nn.DataParallel(self.model)
             if args.bottleneck:
                 self.bottleneck_layer = torch.nn.DataParallel(self.bottleneck_layer)
-            if args.domain_adversarial:
+            if args.inconsistent =="PADA":
                 self.AdversarialNet = torch.nn.DataParallel(self.AdversarialNet)
             self.classifier_layer = torch.nn.DataParallel(self.classifier_layer)
 
         # Define the learning parameters
-        if args.domain_adversarial:
+        if args.inconsistent == 'PADA':
             if args.bottleneck:
                 parameter_list = [{"params": self.model.parameters(), "lr": args.lr},
                                   {"params": self.bottleneck_layer.parameters(), "lr": args.lr},
@@ -163,40 +154,9 @@ class train_utils(object):
         self.model.to(self.device)
         if args.bottleneck:
             self.bottleneck_layer.to(self.device)
-        if args.domain_adversarial:
+        if args.inconsistent == 'PADA':
             self.AdversarialNet.to(self.device)
         self.classifier_layer.to(self.device)
-
-
-        # Define the distance loss
-        if args.distance_metric:
-            if args.distance_loss == 'MK-MMD':
-                self.distance_loss = DAN
-            elif args.distance_loss == "JMMD":
-                ## add additional network for some methods
-                self.softmax_layer = nn.Softmax(dim=1)
-                self.softmax_layer = self.softmax_layer.to(self.device)
-                self.distance_loss = JAN
-            elif args.distance_loss == "CORAL":
-                self.distance_loss = CORAL
-            else:
-                raise Exception("loss not implement")
-        else:
-            self.distance_loss = None
-
-        # Define the adversarial loss
-        if args.domain_adversarial:
-            if args.adversarial_loss == 'DA':
-                self.adversarial_loss = nn.BCELoss()
-            elif args.adversarial_loss == "CDA" or args.adversarial_loss == "CDA+E":
-                ## add additional network for some methods
-                self.softmax_layer_ad = nn.Softmax(dim=1)
-                self.softmax_layer_ad = self.softmax_layer_ad.to(self.device)
-                self.adversarial_loss = nn.BCELoss()
-            else:
-                raise Exception("loss not implement")
-        else:
-            self.adversarial_loss = None
 
         self.criterion = nn.CrossEntropyLoss()
 
@@ -215,7 +175,6 @@ class train_utils(object):
         batch_acc = 0
         step_start = time.time()
 
-        iter_num = 0
         for epoch in range(self.start_epoch, args.max_epoch):
             logging.info('-'*5 + 'Epoch {}/{}'.format(epoch, args.max_epoch - 1) + '-'*5)
             # Update the learning rate
@@ -240,14 +199,14 @@ class train_utils(object):
                     self.model.train()
                     if args.bottleneck:
                         self.bottleneck_layer.train()
-                    if args.domain_adversarial:
+                    if args.inconsistent == 'PADA':
                         self.AdversarialNet.train()
                     self.classifier_layer.train()
                 else:
                     self.model.eval()
                     if args.bottleneck:
                         self.bottleneck_layer.eval()
-                    if args.domain_adversarial:
+                    if args.inconsistent == 'PADA':
                         self.AdversarialNet.eval()
                     self.classifier_layer.eval()
 
@@ -276,96 +235,54 @@ class train_utils(object):
                         else:
                             logits = outputs.narrow(0, 0, labels.size(0))
                             classifier_loss = self.criterion(logits, labels)
-                            # Calculate the distance metric
-                            if self.distance_loss is not None:
-                                if args.distance_loss == 'MK-MMD':
-                                    distance_loss = self.distance_loss(features.narrow(0, 0, labels.size(0)),
-                                                                       features.narrow(0, labels.size(0), inputs.size(0)-labels.size(0)))
-                                elif args.distance_loss == 'JMMD':
-                                    softmax_out = self.softmax_layer(outputs)
-                                    distance_loss = self.distance_loss([features.narrow(0, 0, labels.size(0)),
-                                                                        softmax_out.narrow(0, 0, labels.size(0))],
-                                                                       [features.narrow(0, labels.size(0),
-                                                                                        inputs.size(0)-labels.size(0)),
-                                                                        softmax_out.narrow(0, labels.size(0),
-                                                                                           inputs.size(0)-labels.size(0))],
-                                                                       )
-                                elif args.distance_loss == 'CORAL':
-                                    distance_loss = self.distance_loss(outputs.narrow(0, 0, labels.size(0)),
-                                                                       outputs.narrow(0, labels.size(0), inputs.size(0)-labels.size(0)))
-                                else:
-                                    raise Exception("loss not implement")
 
-                            else:
-                                distance_loss = 0
+                            if args.inconsistent == 'PADA':
+                                if epoch % 3 == 0:
+                                    self.model.train(False)
+                                    if args.bottleneck:
+                                        self.bottleneck_layer.train(False)
+                                    self.classifier_layer.train(False)
 
+                                    start_test = True
+                                    for _, (target_inputs, target_labels) in enumerate(
+                                            self.dataloaders['target_train']):
+                                        target_inputs = target_inputs.to(self.device)
+                                        target_features = self.model(target_inputs)
+                                        if args.bottleneck:
+                                            target_features = self.bottleneck_layer(target_features)
+                                        target_outputs = self.classifier_layer(target_features)
+                                        softmax_outputs = nn.Softmax(dim=1)(target_outputs)
+                                        if start_test:
+                                            all_softmax_output = softmax_outputs.data.cpu().float()
+                                            start_test = False
+                                        else:
+                                            all_softmax_output = torch.cat(
+                                                (all_softmax_output, softmax_outputs.data.cpu().float()), 0)
 
-                            # Calculate the domain adversarial
-                            if self.adversarial_loss is not None:
-                                if args.adversarial_loss == 'DA':
-                                    domain_label_source = torch.ones(labels.size(0)).float()
-                                    domain_label_target = torch.zeros(inputs.size(0)-labels.size(0)).float()
-                                    adversarial_label = torch.cat((domain_label_source, domain_label_target), dim=0).to(self.device)
-                                    adversarial_out = self.AdversarialNet(features)
-                                    adversarial_loss = self.adversarial_loss(adversarial_out, adversarial_label)
-                                elif args.adversarial_loss == 'CDA':
-                                    softmax_out = self.softmax_layer_ad(outputs).detach()
-                                    op_out = torch.bmm(softmax_out.unsqueeze(2), features.unsqueeze(1))
-                                    adversarial_out = self.AdversarialNet(op_out.view(-1, softmax_out.size(1) * features.size(1)))
+                                    class_weight = torch.mean(all_softmax_output, 0)
+                                    class_weight = (class_weight / torch.mean(class_weight)).cuda().view(-1)
+                                    self.criterion = nn.CrossEntropyLoss(weight=class_weight)
+                                self.model.train(True)
+                                if args.bottleneck:
+                                    self.bottleneck_layer.train(True)
+                                self.classifier_layer.train(True)
+                                weight_ad = torch.zeros(inputs.size(0))
+                                label_numpy = labels.data.cpu().numpy()
+                                for j in range(labels.size(0)):
+                                    weight_ad[j] = class_weight[int(label_numpy[j])]
+                                weight_ad = weight_ad / torch.max(weight_ad[0:labels.size(0)])
+                                for j in range(labels.size(0), inputs.size(0)):
+                                    weight_ad[j] = 1.0
+                                domain_label_source = torch.ones(labels.size(0)).float()
+                                domain_label_target = torch.zeros(inputs.size(0) - labels.size(0)).float()
+                                adversarial_label = torch.cat((domain_label_source, domain_label_target), dim=0).to(
+                                    self.device)
+                                adversarial_out = self.AdversarialNet(features)
+                                inconsistent_loss = nn.BCELoss(weight=weight_ad.view(-1).to(self.device))(
+                                    adversarial_out.view(-1), adversarial_label.view(-1))
+                                classifier_loss = self.criterion(outputs.narrow(0, 0, labels.size(0)), labels)
 
-                                    domain_label_source = torch.ones(labels.size(0)).float()
-                                    domain_label_target = torch.zeros(inputs.size(0)-labels.size(0)).float()
-                                    adversarial_label = torch.cat((domain_label_source, domain_label_target), dim=0).to(self.device)
-                                    adversarial_loss = self.adversarial_loss(adversarial_out, adversarial_label)
-                                elif args.adversarial_loss == "CDA+E":
-                                    softmax_out = self.softmax_layer_ad(outputs)
-                                    coeff = calc_coeff(iter_num, self.max_iter)
-                                    entropy = Entropy(softmax_out)
-                                    entropy.register_hook(grl_hook(coeff))
-                                    entropy = 1.0 + torch.exp(-entropy)
-                                    entropy_source = entropy.narrow(0, 0, labels.size(0))
-                                    entropy_target = entropy.narrow(0, labels.size(0), inputs.size(0) - labels.size(0))
-
-                                    softmax_out = softmax_out.detach()
-                                    op_out = torch.bmm(softmax_out.unsqueeze(2), features.unsqueeze(1))
-                                    adversarial_out = self.AdversarialNet(
-                                        op_out.view(-1, softmax_out.size(1) * features.size(1)))
-                                    domain_label_source = torch.ones(labels.size(0)).float().to(
-                                        self.device)
-                                    domain_label_target = torch.zeros(inputs.size(0) - labels.size(0)).float().to(
-                                        self.device)
-                                    adversarial_label = torch.cat((domain_label_source, domain_label_target), dim=0).to(
-                                        self.device)
-                                    weight = torch.cat((entropy_source / torch.sum(entropy_source).detach().item(),
-                                                        entropy_target / torch.sum(entropy_target).detach().item()), dim=0)
-
-                                    adversarial_loss = torch.sum(weight.view(-1, 1) * self.adversarial_loss(adversarial_out, adversarial_label)) / torch.sum(weight).detach().item()
-                                    iter_num += 1
-
-                                else:
-                                    raise Exception("loss not implement")
-                            else:
-                                adversarial_loss = 0
-
-                            # Calculate the trade off parameter lam
-                            if args.trade_off_distance == 'Cons':
-                                lam_distance = args.lam_distance
-                            elif args.trade_off_distance == 'Step':
-                                lam_distance = 2 / (1 + math.exp(-10 * ((epoch-args.middle_epoch) /
-                                                                        (args.max_epoch-args.middle_epoch)))) - 1
-                            else:
-                                raise Exception("trade_off_distance not implement")
-
-                            # if args.trade_off_adversarial == 'Cons':
-                            #     lam_adversarial = args.lam_adversarial
-                            # elif args.trade_off_adversarial == 'Step':
-                            #     lam_adversarial = 2 / (1 + math.exp(-10 * ((epoch-args.middle_epoch) /
-                            #                                             (args.max_epoch-args.middle_epoch)))) - 1
-                            # else:
-                            #     raise Exception("loss not implement")
-
-                            # loss = classifier_loss + lam_distance * distance_loss + lam_adversarial * adversarial_loss
-                            loss = classifier_loss + lam_distance * distance_loss + adversarial_loss
+                            loss = classifier_loss + inconsistent_loss
 
 
                         pred = logits.argmax(dim=1)

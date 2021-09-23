@@ -55,3 +55,29 @@ class AdversarialNet(nn.Module):
 
     def output_num(self):
         return self.__in_features
+
+class AdversarialNet_auxiliary(nn.Module):
+    def __init__(self, in_feature, hidden_size):
+        super(AdversarialNet_auxiliary, self).__init__()
+        self.ad_layer1 = nn.Sequential(
+            nn.Linear(in_feature, hidden_size),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+        )
+        self.ad_layer2 = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+        )
+        self.ad_layer3 = nn.Linear(hidden_size, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.ad_layer1(x)
+        x = self.ad_layer2(x)
+        y = self.ad_layer3(x)
+        y = self.sigmoid(y)
+        return y
+
+    def output_num(self):
+        return self.__in_features
