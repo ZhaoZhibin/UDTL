@@ -1,7 +1,9 @@
 
 ## UDTL-based-Intelligent-Diagnosis-Benchmark
 
-Code release for **[Unsupervised Deep Transfer Learning for Intelligent Fault Diagnosis: An Open Source and Comparative Study](https://github.com/ZhaoZhibin/DL-based-Intelligent-Diagnosis-Benchmark)** by [Zhibin Zhao](https://zhaozhibin.github.io/), Qiyang Zhang, and Xiaolei Yu.
+Source codes for the paper "Applications of Unsupervised Deep Transfer Learning to Intelligent Fault Diagnosis: A Survey and Comparative Study"
+
+This repository contains the implementation details of our paper: [IEEE Transactions on Instrumentation and Measurement] **[Applications of Unsupervised Deep Transfer Learning to Intelligent Fault Diagnosis: A Survey and Comparative Study](https://github.com/ZhaoZhibin/DL-based-Intelligent-Diagnosis-Benchmark)** by [Zhibin Zhao](https://zhaozhibin.github.io/), Qiyang Zhang, and Xiaolei Yu.
 The methods about multi-domain TL can be found in (https://github.com/zhanghuanwang1/UDTL_multi_domain) and the methods about label-inconsistent TL can be found in (https://github.com/xiaoleimiao/UDTL_Lable_Inconsistent).
 ## Correction
 * 2020.06.02, we modified the errors in util/train_utils_combines. (class_num --> num_classes).
@@ -81,11 +83,11 @@ howpublished = {\url{https://github.com/ZhaoZhibin/UDTL}},
 ```
 Paper:
 ```
-@article{zhao2019unsupervised,
-  title={Unsupervised Deep Transfer Learning for Intelligent Fault Diagnosis: An Open Source and Comparative Study},
+@article{zhao2021applications,
+  title={Applications of Unsupervised Deep Transfer Learning to Intelligent Fault Diagnosis: A Survey and Comparative Study},
   author={Zhibin Zhao and Qiyang Zhang and Xiaolei Yu and Chuang Sun and Shibin Wang and Ruqiang Yan and Xuefeng Chen},
-  journal={arXiv preprint arXiv:1912.12528},
-  year={2019}
+  journal={IEEE Transactions on Instrumentation and Measurement},
+  year={2021}
 }
 ```
 ## Contact
