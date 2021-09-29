@@ -1,5 +1,5 @@
 
-## UDTL-based-Intelligent-Diagnosis-Benchmark
+## UDTL-based-Intelligent-Diagnosis
 
 Source codes for the paper "Applications of Unsupervised Deep Transfer Learning to Intelligent Fault Diagnosis: A Survey and Comparative Study"
 
