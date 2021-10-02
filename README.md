@@ -3,7 +3,7 @@
 
 Source codes for the paper "Applications of Unsupervised Deep Transfer Learning to Intelligent Fault Diagnosis: A Survey and Comparative Study"
 
-This repository contains the implementation details of our paper: [IEEE Transactions on Instrumentation and Measurement] **[Applications of Unsupervised Deep Transfer Learning to Intelligent Fault Diagnosis: A Survey and Comparative Study](https://github.com/ZhaoZhibin/DL-based-Intelligent-Diagnosis-Benchmark)** by [Zhibin Zhao](https://zhaozhibin.github.io/), Qiyang Zhang, and Xiaolei Yu.
+This repository contains the implementation details of our paper: [IEEE Transactions on Instrumentation and Measurement] **[Applications of Unsupervised Deep Transfer Learning to Intelligent Fault Diagnosis: A Survey and Comparative Study](https://ieeexplore.ieee.org/document/9552620)** by [Zhibin Zhao](https://zhaozhibin.github.io/), Qiyang Zhang, and Xiaolei Yu.
 The methods about multi-domain TL can be found in (https://github.com/zhanghuanwang1/UDTL_multi_domain) and the methods about label-inconsistent TL can be found in (https://github.com/xiaoleimiao/UDTL_Lable_Inconsistent).
 ## Correction
 * 2020.06.02, we modified the errors in util/train_utils_combines. (class_num --> num_classes).
