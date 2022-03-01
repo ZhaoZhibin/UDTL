@@ -307,7 +307,7 @@ class train_utils(object):
                                     domain_label_target = torch.zeros(inputs.size(0)-labels.size(0)).float()
                                     adversarial_label = torch.cat((domain_label_source, domain_label_target), dim=0).to(self.device)
                                     adversarial_out = self.AdversarialNet(features)
-                                    adversarial_loss = self.adversarial_loss(adversarial_out, adversarial_label)
+                                    adversarial_loss = self.adversarial_loss(adversarial_out.squeeze(), adversarial_label)
                                 elif args.adversarial_loss == 'CDA':
                                     softmax_out = self.softmax_layer_ad(outputs).detach()
                                     op_out = torch.bmm(softmax_out.unsqueeze(2), features.unsqueeze(1))
@@ -316,7 +316,7 @@ class train_utils(object):
                                     domain_label_source = torch.ones(labels.size(0)).float()
                                     domain_label_target = torch.zeros(inputs.size(0)-labels.size(0)).float()
                                     adversarial_label = torch.cat((domain_label_source, domain_label_target), dim=0).to(self.device)
-                                    adversarial_loss = self.adversarial_loss(adversarial_out, adversarial_label)
+                                    adversarial_loss = self.adversarial_loss(adversarial_out.squeeze(), adversarial_label)
                                 elif args.adversarial_loss == "CDA+E":
                                     softmax_out = self.softmax_layer_ad(outputs)
                                     coeff = calc_coeff(iter_num, self.max_iter)
@@ -339,7 +339,7 @@ class train_utils(object):
                                     weight = torch.cat((entropy_source / torch.sum(entropy_source).detach().item(),
                                                         entropy_target / torch.sum(entropy_target).detach().item()), dim=0)
 
-                                    adversarial_loss = torch.sum(weight.view(-1, 1) * self.adversarial_loss(adversarial_out, adversarial_label)) / torch.sum(weight).detach().item()
+                                    adversarial_loss = torch.sum(weight.view(-1, 1) * self.adversarial_loss(adversarial_out.squeeze(), adversarial_label)) / torch.sum(weight).detach().item()
                                     iter_num += 1
 
                                 else:
